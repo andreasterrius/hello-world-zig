@@ -79,7 +79,7 @@ pub fn solve(grid: *[9][9]u8, colP: u8, rowP: u8) !bool {
     var row: u8 = rowP;
 
     //print("({},{})\n", .{ row, col });
-    try debug(grid.*);
+    //try debug(grid.*);
 
     while (grid[row][col] != 0) {
         col += 1;
@@ -112,7 +112,7 @@ var debugFile: ?std.fs.File = null;
 pub fn debug(grid: [9][9]u8) !void {
     if (debugFile == null) {
         //write the given data
-        debugFile = try std.fs.cwd().createFile("sudoku-debug.txt", .{});
+        debugFile = try std.fs.cwd().createFile("sudoku-solution.txt", .{});
     }
 
     const string = try std.fmt.allocPrint(
@@ -127,11 +127,17 @@ pub fn debug(grid: [9][9]u8) !void {
 pub fn main() !void {
     var grid = try loadGridFromFile("sudoku.txt");
     var hasSolution = try solve(&grid, 0, 0);
-    _ = hasSolution;
 
-    if (debugFile != null) {
-        (debugFile orelse unreachable).close();
+    if (hasSolution) {
+        print("solution found, printing to sudoku-solution.txt!\n", .{});
+        try debug(grid);
+        if (debugFile != null) {
+            (debugFile orelse unreachable).close();
+        }
+    } else {
+        print("solution doesn't exist for this puzzle\n", .{});
     }
+
     // writeSolutionToFile("sudoku_solution.txt");
 }
 
