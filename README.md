@@ -1,6 +1,7 @@
 # Hello Zig
 
-Personal note and codes that I use to learn zig.
+Personal note and codes that I use to learn zig. Maybe this repo can help someone out!
+Zig used is `0.11.0-dev.3395+1e7dcaa3a`
 
 | Code                	| Files                                         	| Description                                                         	| Category                                              	|
 |---------------------	|-----------------------------------------------	|---------------------------------------------------------------------	|-------------------------------------------------------	|
