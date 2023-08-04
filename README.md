@@ -9,4 +9,5 @@ Zig used is `0.11.0-dev.3395+1e7dcaa3a`
 | Hello Zig!          	| helloworld.zig                                	| Snippets contained in zig docs, see basic functionallity and syntax 	| Basic Syntax                                          	|
 | Read File           	| read-file.zig                                 	| Snippets containing how to read files                    	            | File I/O                                              	|
 | Advent Of Code 2022 	| advent-of-code-2022*                          	| Some small problem solving code                                   	| Basic Syntax, Priority Queue, StringHashMap, File I/O 	|
-| Sudoku Solver       	| sudoku-solver.zig sudoku-solution.txt sudoku.txt 	| Solves sudoku puzzle                                                	| StaticBitSet, 2D arrays, Test Syntax                             	|
+| Sudoku Solver       	| sudoku-solver.zig sudoku-solution.txt sudoku.txt 	| Solves sudoku puzzle                                                	| StaticBitSet, 2D arrays, Test Syntax                      |
+| Tic Tac Toe           | tic-tac-toe/*                                     | A simple tic-tac-toe game                                             | Raylib, Allocators                                        |
