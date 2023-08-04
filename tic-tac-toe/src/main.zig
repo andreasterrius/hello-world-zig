@@ -1,24 +1,140 @@
 const std = @import("std");
+const raylib = @import("raylib");
 
-pub fn main() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
+const Tic = enum {
+    X,
+    O,
+    Empty,
+};
 
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
+pub fn winCheck(state: [3][3]Tic) Tic {
+    for (0..3) |i| {
+        if (state[0][i] != Tic.Empty and state[0][i] == state[1][i] and state[1][i] == state[2][i]) {
+            return state[0][i];
+        }
+        if (state[i][0] != Tic.Empty and state[i][0] == state[i][1] and state[i][1] == state[i][2]) {
+            return state[i][0];
+        }
+    }
 
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
-
-    try bw.flush(); // don't forget to flush!
+    if (state[0][0] != Tic.Empty and state[0][0] == state[1][1] and state[1][1] == state[2][2]) {
+        return state[0][0];
+    }
+    if (state[0][2] != Tic.Empty and state[0][2] == state[1][1] and state[1][1] == state[2][0]) {
+        return state[0][2];
+    }
+    return Tic.Empty;
 }
 
-test "simple test" {
-    var list = std.ArrayList(i32).init(std.testing.allocator);
-    defer list.deinit(); // try commenting this out and see if zig detects the memory leak!
-    try list.append(42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
+pub fn drawCheck(state: [3][3]Tic) bool {
+    var count: i32 = 0;
+    for (state) |row| {
+        for (row) |cell| {
+            if (cell != Tic.Empty) {
+                count += 1;
+            }
+        }
+    }
+    if (count == 9) {
+        return true;
+    }
+
+    return false;
+}
+
+pub fn reset(state: *[3][3]Tic) void {
+    state.* = [3][3]Tic{
+        [3]Tic{ Tic.Empty, Tic.Empty, Tic.Empty },
+        [3]Tic{ Tic.Empty, Tic.Empty, Tic.Empty },
+        [3]Tic{ Tic.Empty, Tic.Empty, Tic.Empty },
+    };
+}
+
+pub fn main() !void {
+    raylib.InitWindow(600, 620, "Tic Tac Toe");
+    defer raylib.CloseWindow();
+
+    raylib.SetConfigFlags(.{ .FLAG_WINDOW_RESIZABLE = true });
+    raylib.SetTargetFPS(60);
+
+    var state = [3][3]Tic{
+        [3]Tic{ Tic.Empty, Tic.Empty, Tic.Empty },
+        [3]Tic{ Tic.Empty, Tic.Empty, Tic.Empty },
+        [3]Tic{ Tic.Empty, Tic.Empty, Tic.Empty },
+    };
+    var xWin: i32 = 0;
+    var oWin: i32 = 0;
+    var draw: i32 = 0;
+
+    var whoseTurn = Tic.X;
+
+    while (!raylib.WindowShouldClose()) {
+        raylib.BeginDrawing();
+        defer raylib.EndDrawing();
+
+        raylib.DrawLine(200, 0, 200, 600, raylib.WHITE);
+        raylib.DrawLine(400, 0, 400, 600, raylib.WHITE);
+        raylib.DrawLine(0, 200, 600, 200, raylib.WHITE);
+        raylib.DrawLine(0, 400, 600, 400, raylib.WHITE);
+        raylib.DrawLine(0, 600, 600, 600, raylib.WHITE);
+
+        // handle input
+        var isMouseDown = raylib.IsMouseButtonPressed(raylib.MouseButton.MOUSE_BUTTON_LEFT);
+        if (isMouseDown) {
+            var mousePos = raylib.GetMousePosition();
+            var column = @as(usize, @intFromFloat(mousePos.x / 200));
+            var row = @as(usize, @intFromFloat(mousePos.y / 200));
+            if (state[row][column] == Tic.Empty) {
+                state[row][column] = whoseTurn;
+                if (whoseTurn == Tic.X) {
+                    whoseTurn = Tic.O;
+                } else if (whoseTurn == Tic.O) {
+                    whoseTurn = Tic.X;
+                }
+
+                var winTic = winCheck(state);
+                if (winTic == Tic.O) {
+                    oWin += 1;
+                    reset(&state);
+                } else if (winTic == Tic.X) {
+                    xWin += 1;
+                    reset(&state);
+                }
+                if (drawCheck(state)) {
+                    draw += 1;
+                    reset(&state);
+                }
+            }
+        }
+        // make it look better
+        const renderOffsetX = 43;
+        const renderOffsetY = 13;
+
+        var drawText = try std.fmt.allocPrintZ(std.heap.page_allocator, "Draw: {}", .{draw});
+        defer std.heap.page_allocator.free(drawText);
+        var xWinText = try std.fmt.allocPrintZ(std.heap.page_allocator, "X Win: {}", .{xWin});
+        defer std.heap.page_allocator.free(xWinText);
+        var oWinText = try std.fmt.allocPrintZ(std.heap.page_allocator, "O Win: {}", .{oWin});
+        defer std.heap.page_allocator.free(oWinText);
+
+        raylib.DrawText(drawText, 0, 600, 20, raylib.WHITE);
+        raylib.DrawText(xWinText, 240, 600, 20, raylib.RED);
+        raylib.DrawText(oWinText, 500, 600, 20, raylib.GREEN);
+
+        // render tic tac toe grid
+        for (state, 0..) |row, j| {
+            for (row, 0..) |cell, i| {
+                var coordX = @as(i32, @intCast(i * 200)) + renderOffsetX;
+                var coordY = @as(i32, @intCast(j * 200)) + renderOffsetY;
+                if (cell == Tic.O) {
+                    raylib.DrawText("O", coordX, coordY, 200, raylib.GREEN);
+                } else if (cell == Tic.X) {
+                    raylib.DrawText("X", coordX, coordY, 200, raylib.RED);
+                }
+            }
+        }
+
+        raylib.ClearBackground(raylib.BLACK);
+        raylib.DrawFPS(10, 10);
+    }
 }
