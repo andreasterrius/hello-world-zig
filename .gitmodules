@@ -4,3 +4,6 @@
 [submodule "blinn-phong/raylib"]
 	path = blinn-phong/raylib
 	url = https://github.com/ryupold/raylib.zig
+[submodule "3d-anim/raylib"]
+	path = 3d-anim/raylib
+	url = https://github.com/ryupold/raylib.zig
