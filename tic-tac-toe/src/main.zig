@@ -110,12 +110,12 @@ pub fn main() !void {
         const renderOffsetX = 43;
         const renderOffsetY = 13;
 
-        var drawText = try std.fmt.allocPrintZ(std.heap.page_allocator, "Draw: {}", .{draw});
-        defer std.heap.page_allocator.free(drawText);
-        var xWinText = try std.fmt.allocPrintZ(std.heap.page_allocator, "X Win: {}", .{xWin});
-        defer std.heap.page_allocator.free(xWinText);
-        var oWinText = try std.fmt.allocPrintZ(std.heap.page_allocator, "O Win: {}", .{oWin});
-        defer std.heap.page_allocator.free(oWinText);
+        var drawTextBuf = [_]u8{0} ** 50;
+        var xWinTextBuf = [_]u8{0} ** 50;
+        var oWinTextBuf = [_]u8{0} ** 50;
+        var drawText = try std.fmt.bufPrintZ(&drawTextBuf, "Draw: {}", .{draw});
+        var xWinText = try std.fmt.bufPrintZ(&xWinTextBuf, "X Win: {}", .{xWin});
+        var oWinText = try std.fmt.bufPrintZ(&oWinTextBuf, "O Win: {}", .{oWin});
 
         raylib.DrawText(drawText, 0, 600, 20, raylib.WHITE);
         raylib.DrawText(xWinText, 240, 600, 20, raylib.RED);

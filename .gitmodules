@@ -1,3 +1,6 @@
 [submodule "tic-tac-toe/raylib"]
 	path = tic-tac-toe/raylib
 	url = https://github.com/ryupold/raylib.zig
+[submodule "blinn-phong/raylib"]
+	path = blinn-phong/raylib
+	url = https://github.com/ryupold/raylib.zig

@@ -96,7 +96,7 @@ pub fn solve(grid: *[9][9]u8, colP: u8, rowP: u8) !bool {
 
     for (1..10) |val| {
         if (possibleValue.isSet(val)) {
-            grid[row][col] = @intCast(u8, val);
+            grid[row][col] = @as(u8, @intCast(val));
             var solved = try solve(grid, col, row);
             if (solved) {
                 return true;
