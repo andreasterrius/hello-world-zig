@@ -73,15 +73,20 @@ pub fn main() !void {
 
     while (!raylib.WindowShouldClose()) {
         var dt = raylib.GetFrameTime();
+
+        // Input
+        char.handleInput();
+
+        // Update
+        char.updateCharacter(dt);
+        char.updateCamera(dt);
+
+        // Render
         raylib.BeginDrawing();
         defer raylib.EndDrawing();
 
         raylib.ClearBackground(raylib.DARKBLUE);
         raylib.DrawFPS(10, 10);
-
-        char.handleInput();
-        char.updateCharacter(dt);
-        char.updateCamera(dt);
 
         raylib.BeginMode3D(char.getCamera());
         defer raylib.EndMode3D();
