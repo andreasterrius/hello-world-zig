@@ -9,7 +9,7 @@ pub fn main() !void {
         .version = 123,
     };
     defer me.deinit();
-    try me.owned_name.appendSlice("hello hello");
+    try me.addToName("hello hello");
 
     print("me.non_changing_name: {s}\n", .{me.non_changing_name});
     print("me.owned_name: {s}\n", .{me.owned_name.items});
