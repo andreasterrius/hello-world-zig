@@ -4,10 +4,14 @@ const raylib = @import("raylib");
 const Self = @This();
 
 const cameraDistance = raylib.Vector3{ .x = 0.0, .y = 4.0, .z = -6.0 };
+const cameraLookAhead = raylib.Vector3{ .x = 0.0, .y = 0.0, .z = 6.0 };
 
 // attributes
 camera: raylib.Camera3D,
+cameraTargetPosition: raylib.Vector3,
+
 position: raylib.Vector3,
+
 model: raylib.Model,
 
 // input handling here
@@ -16,19 +20,21 @@ shouldMoveForward: f32,
 
 pub fn init(position: raylib.Vector3, model: raylib.Model, shader: raylib.Shader) Self {
     model.materials.?[0].shader = shader;
+    var cameraPosition = position.add(cameraDistance);
     return Self{
         .position = position,
         .model = model,
         .camera = .{
             // .position = .{ .x = 2.0, .y = 4.0, .z = 6.0 },
-            .position = position.add(cameraDistance),
+            .position = cameraPosition,
             .target = position,
             .up = .{ .x = 0.0, .y = 1.0, .z = 0.0 },
             .fovy = 45.0,
             .projection = .CAMERA_PERSPECTIVE,
         },
-        .shouldMoveForward = 0.0,
-        .shouldMoveRight = 0.0,
+        .cameraTargetPosition = cameraPosition,
+        .shouldMoveForward = 0.0, //[-1.0, 1.0]
+        .shouldMoveRight = 0.0, //[1.0, 1.0]
     };
 }
 
@@ -69,9 +75,14 @@ pub fn updateCharacter(self: *Self, dt: f32) void {
 
 pub fn updateCamera(self: *Self, dt: f32) void {
     _ = dt;
-    self.camera.position = self.position.add(cameraDistance);
+    var cameraPosition = self.position.add(cameraDistance);
+    _ = cameraPosition;
+
+    //hardcode this for now,
+    self.cameraTargetPosition = self.*.cameraTargetPosition;
+
     self.camera.target = self.position;
-    print("{any}, {any}\n", .{ self.camera.position, self.position });
+    //print("{any}, {any}\n", .{ self.camera.position, self.position });
 }
 
 pub fn useCamera(self: Self, shader: raylib.Shader) void {
