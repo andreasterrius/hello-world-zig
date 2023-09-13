@@ -17,6 +17,8 @@ const Light = extern struct { //extern for C ABI
         var targetLoc = raylib.GetShaderLocation(shader, try std.fmt.bufPrintZ(&buf, "lights[{}].target", .{lightsCount}));
         var colorLoc = raylib.GetShaderLocation(shader, try std.fmt.bufPrintZ(&buf, "lights[{}].color", .{lightsCount}));
 
+        raylib.SetWindowSize(1024, 1024);
+
         raylib.SetShaderValue(shader, enabledLoc, &self.enabled, .SHADER_UNIFORM_INT);
         raylib.SetShaderValue(shader, typeLoc, &self.type, .SHADER_UNIFORM_INT);
         var position = [_]f32{ self.position.x, self.position.y, self.position.z };
@@ -31,6 +33,11 @@ const Light = extern struct { //extern for C ABI
         };
         raylib.SetShaderValue(shader, colorLoc, &color, .SHADER_UNIFORM_VEC4);
     }
+};
+
+const StaticMeshObject = struct {
+    position: raylib.Vector3,
+    model: raylib.Model,
 };
 
 const LightType = enum(i32) {
@@ -64,6 +71,9 @@ pub fn main() !void {
     );
     defer char.deinit();
 
+    //var staticModels = raylib.LoadModel("resources/assets/kenney_survival_kit/Models/GLTF format/sc.glb");
+    var staticModels = raylib.LoadModel("resources/assets/kenney_survival_kit/Scene/simple.glb");
+
     var lights = [_]Light{
         Light{ .enabled = true, .type = LightType.POINT_LIGHT, .position = .{ .x = -2, .y = 1, .z = -2 }, .target = .{ .x = 0, .y = 0, .z = 0 }, .color = raylib.YELLOW },
         Light{ .enabled = true, .type = LightType.POINT_LIGHT, .position = .{ .x = 2, .y = 1, .z = 2 }, .target = .{ .x = 0, .y = 0, .z = 0 }, .color = raylib.RED },
@@ -90,6 +100,8 @@ pub fn main() !void {
 
         raylib.BeginMode3D(char.getCamera());
         defer raylib.EndMode3D();
+
+        raylib.DrawModel(staticModels, .{ .x = 0.0, .y = 0.0, .z = 0.0 }, 1.0, raylib.WHITE);
 
         char.useCamera(blinnPhong);
         for (0..lights.len) |i| {
