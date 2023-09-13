@@ -1,6 +1,7 @@
 const std = @import("std");
 const raylib = @import("raylib");
 const Character = @import("character.zig");
+const Scene = @import("scene.zig").Scene;
 
 const Light = extern struct { //extern for C ABI
     enabled: bool,
@@ -72,7 +73,11 @@ pub fn main() !void {
     defer char.deinit();
 
     //var staticModels = raylib.LoadModel("resources/assets/kenney_survival_kit/Models/GLTF format/sc.glb");
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var allocator = gpa.allocator();
     var staticModels = raylib.LoadModel("resources/assets/kenney_survival_kit/Scene/simple.glb");
+    var scene = try Scene.load(allocator, "resources/assets/scene.json");
+    defer scene.deinit();
 
     var lights = [_]Light{
         Light{ .enabled = true, .type = LightType.POINT_LIGHT, .position = .{ .x = -2, .y = 1, .z = -2 }, .target = .{ .x = 0, .y = 0, .z = 0 }, .color = raylib.YELLOW },
