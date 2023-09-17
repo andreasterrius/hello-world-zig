@@ -1,5 +1,6 @@
 const std = @import("std");
 const raylib = @import("raylib/build.zig");
+const zphysics = @import("zig-gamedev/libs/zphysics/build.zig");
 
 // Although this function looks imperative, note that its job is to
 // declaratively construct a build graph that will be executed by an external
@@ -25,12 +26,21 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const zphysics_pkg = zphysics.package(b, target, optimize, .{
+        .options = .{
+            .use_double_precision = false,
+            .enable_cross_platform_determinism = true,
+        }
+    });
+
     raylib.addTo(b, exe, target, optimize);
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
     // step when running `zig build`).
     b.installArtifact(exe);
+
+    zphysics_pkg.link(exe);
 
     // This *creates* a Run step in the build graph, to be executed when another
     // step is evaluated that depends on it. The next line below will establish

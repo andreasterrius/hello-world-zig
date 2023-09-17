@@ -17,6 +17,7 @@ model: raylib.Model,
 // input handling here
 shouldMoveRight: f32,
 shouldMoveForward: f32,
+physicsSim : bool,
 
 pub fn init(position: raylib.Vector3, model: raylib.Model, shader: raylib.Shader) Self {
     model.materials.?[0].shader = shader;
@@ -35,6 +36,7 @@ pub fn init(position: raylib.Vector3, model: raylib.Model, shader: raylib.Shader
         .cameraTargetPosition = cameraPosition,
         .shouldMoveForward = 0.0, //[-1.0, 1.0]
         .shouldMoveRight = 0.0, //[1.0, 1.0]
+        .physicsSim = false,
     };
 }
 
@@ -57,6 +59,9 @@ pub fn handleInput(self: *Self) void {
     }
     if (raylib.IsKeyDown(.KEY_S)) {
         self.shouldMoveForward = -1.0;
+    }
+    if (raylib.IsKeyDown(.KEY_F)) {
+        self.physicsSim = true;
     }
 }
 

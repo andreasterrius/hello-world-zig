@@ -3,6 +3,11 @@ const raylib = @import("raylib");
 const Character = @import("character.zig");
 const Scene = @import("scene.zig").Scene;
 
+// physics import
+const phys = @import("physics.zig");
+const Physics = phys.Physics;
+const zphy = @import("zphysics");
+
 const Light = extern struct { //extern for C ABI
     enabled: bool,
     type: LightType,
@@ -75,8 +80,8 @@ pub fn main() !void {
     //var staticModels = raylib.LoadModel("resources/assets/kenney_survival_kit/Models/GLTF format/sc.glb");
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     var allocator = gpa.allocator();
-    var staticModels = raylib.LoadModel("resources/assets/kenney_survival_kit/Scene/simple.glb");
-    var scene = try Scene.load(allocator, "resources/assets/scene.json");
+    //var staticModels = raylib.LoadModel("resources/assets/kenney_survival_kit/Scene/simple.glb");
+    var scene = try Scene.load(allocator, "resources/assets/scene/scene.json");
     defer scene.deinit();
 
     var lights = [_]Light{
@@ -85,6 +90,51 @@ pub fn main() !void {
         Light{ .enabled = true, .type = LightType.POINT_LIGHT, .position = .{ .x = -2, .y = 1, .z = 2 }, .target = .{ .x = 0, .y = 0, .z = 0 }, .color = raylib.GREEN },
         Light{ .enabled = true, .type = LightType.POINT_LIGHT, .position = .{ .x = 2, .y = 1, .z = -2 }, .target = .{ .x = 0, .y = 0, .z = 0 }, .color = raylib.BLUE },
     };
+    
+    var physics = try Physics.init(allocator);
+    defer physics.deinit();
+
+    const body_interface = physics.physics_system.getBodyInterfaceMut();
+
+    const floor_shape_settings = try zphy.BoxShapeSettings.create(.{ 100.0, 1.0, 100.0 });
+    defer floor_shape_settings.release();
+
+    const floor_shape = try floor_shape_settings.createShape();
+    defer floor_shape.release();
+
+    _ = try body_interface.createAndAddBody(.{
+                .position = .{ 0.0, -1.0, 0.0, 1.0 },
+                .rotation = .{ 0.0, 0.0, 0.0, 1.0 },
+                .shape = floor_shape,
+                .motion_type = .static,
+                .object_layer = phys.object_layers.non_moving,
+            }, .activate);
+
+    const box_shape_settings = try zphy.BoxShapeSettings.create(.{ 0.5, 0.5, 0.5 });
+    defer box_shape_settings.release();
+
+    const box_shape = try box_shape_settings.createShape();
+    defer box_shape.release();
+
+    for (0..scene.objects.items.len) |i| {
+        scene.objects.items[i].addPhysicsBody(try body_interface.createAndAddBody(.{
+           .position = .{
+               scene.objects.items[i].position.x,
+               scene.objects.items[i].position.y,
+               scene.objects.items[i].position.z,
+               0.0
+           },
+           .rotation = .{ 0.0, 0.0, 0.0, 1.0 },
+           .shape = box_shape,
+           .motion_type = .dynamic,
+           .object_layer = phys.object_layers.moving,
+           .angular_velocity = .{ 0.0, 0.0, 0.0, 0 },
+           //.allow_sleeping = false,
+       }, .activate));
+
+    }
+
+    physics.physics_system.optimizeBroadPhase();
 
     while (!raylib.WindowShouldClose()) {
         var dt = raylib.GetFrameTime();
@@ -92,9 +142,14 @@ pub fn main() !void {
         // Input
         char.handleInput();
 
-        // Update
+        // Tick
         char.updateCharacter(dt);
         char.updateCamera(dt);
+
+        // Physics Tick
+        if (char.physicsSim) {
+            physics.physics_system.update(dt, .{}) catch unreachable;
+        }
 
         // Render
         raylib.BeginDrawing();
@@ -106,9 +161,16 @@ pub fn main() !void {
         raylib.BeginMode3D(char.getCamera());
         defer raylib.EndMode3D();
 
-        raylib.DrawModel(staticModels, .{ .x = 0.0, .y = 0.0, .z = 0.0 }, 1.0, raylib.WHITE);
-
         char.useCamera(blinnPhong);
+
+        for (0..scene.objects.items.len) |i| {
+            // update position from physics engine first, before rendering
+            var ppos = body_interface.getPosition(scene.objects.items[i].physicsBodyId.?);
+            scene.objects.items[i].position = raylib.Vector3{ .x = ppos[0], .y = ppos[1], .z = ppos[2] };
+
+            raylib.DrawModel(scene.objects.items[i].model, scene.objects.items[i].position, 1.0, raylib.WHITE);
+        }
+
         for (0..lights.len) |i| {
             try lights[i].UpdateLightValues(blinnPhong, @as(i32, @intCast(i)));
             raylib.DrawSphereEx(lights[i].position, 0.2, 8, 8, lights[i].color);

@@ -7,3 +7,6 @@
 [submodule "3d-anim/raylib"]
 	path = 3d-anim/raylib
 	url = https://github.com/ryupold/raylib.zig
+[submodule "third-person-camera/zig-gamedev"]
+	path = third-person-camera/zig-gamedev
+	url = https://github.com/michal-z/zig-gamedev.git

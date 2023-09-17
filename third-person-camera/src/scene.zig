@@ -1,5 +1,6 @@
 const std = @import("std");
 const raylib = @import("raylib");
+const zphy = @import("zphysics");
 
 const ObjectDescriptor = struct {
     resourcePath: []const u8,
@@ -13,14 +14,19 @@ const SceneDescriptor = struct {
 
 const Object = struct {
     model: raylib.Model,
-    position: raylib.Vector3
+    position: raylib.Vector3,
+    physicsBodyId: ?zphy.BodyId,
+
+    pub fn addPhysicsBody(self: *Object, bodyId : zphy.BodyId) void {
+        self.physicsBodyId = bodyId;
+    }
 };
 
 pub const Scene = struct {
     objects : std.ArrayList(Object),
 
     pub fn load(allocator: std.mem.Allocator, path: []const u8) !Scene {
-        const data = try std.fs.cwd().readFileAlloc(allocator, path, 512);
+        const data = try std.fs.cwd().readFileAlloc(allocator, path, 5120);
         defer allocator.free(data);
 
         const api = try std.json.parseFromSlice(SceneDescriptor, allocator, data, .{});
@@ -35,6 +41,7 @@ pub const Scene = struct {
             try objects.append(.{
                 .model = model,
                 .position = od.position,
+                .physicsBodyId = null
             });
         }
 
@@ -49,4 +56,5 @@ pub const Scene = struct {
         }
         self.objects.deinit();
     }
+
 };
