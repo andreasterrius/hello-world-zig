@@ -18,7 +18,8 @@ model: raylib.Model,
 shouldMoveRight: f32,
 shouldMoveForward: f32,
 physicsSim: bool,
-shootRayOnce: bool,
+
+tryPick: bool,
 
 pub fn init(position: raylib.Vector3, model: raylib.Model, shader: raylib.Shader) Self {
     model.materials.?[0].shader = shader;
@@ -38,7 +39,7 @@ pub fn init(position: raylib.Vector3, model: raylib.Model, shader: raylib.Shader
         .shouldMoveForward = 0.0, //[-1.0, 1.0]
         .shouldMoveRight = 0.0, //[1.0, 1.0]
         .physicsSim = false,
-        .shootRayOnce = false,
+        .tryPick = false,
     };
 }
 
@@ -65,8 +66,10 @@ pub fn handleInput(self: *Self) void {
     if (raylib.IsKeyDown(.KEY_F)) {
         self.physicsSim = true;
     }
-    if (raylib.IsKeyDown(.KEY_SPACE)) {
-        self.shootRayOnce = true;
+    if (raylib.IsMouseButtonDown(.MOUSE_BUTTON_LEFT)) {
+        self.tryPick = true;
+    } else {
+        self.tryPick = false;
     }
 }
 

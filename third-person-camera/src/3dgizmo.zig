@@ -18,6 +18,7 @@ pub fn init() !@This() {
     var planeYZModel = raylib.LoadModel("resources/translate_gizmo/Plane_YZ.glb");
 
     // load a flat shader here ?
+    // the default raylib shader is flat though
 
     return @This(){
         .arrowXModel = arrowXModel,
@@ -28,6 +29,10 @@ pub fn init() !@This() {
         .planeYZModel = planeYZModel,
         .location = raylib.Vector3.zero(),
     };
+}
+
+pub fn checkCollision(self: @This()) void {
+    _ = self;
 }
 
 pub fn render(self: @This()) void {

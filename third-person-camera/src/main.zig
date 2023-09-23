@@ -167,10 +167,14 @@ pub fn main() !void {
         raylib.UpdateCamera(&char.camera, .CAMERA_FREE);
         //char.useCamera(blinnPhong);
 
-        if (raylib.IsMouseButtonPressed(.MOUSE_BUTTON_LEFT)) {
-            ray = raylib.GetMouseRay(raylib.GetMousePosition(), char.camera);
-        }
+        // if (char.tryPick) {
+        //     ray = raylib.GetMouseRay(raylib.GetMousePosition(), char.camera);
+        //     if(gizmo.hitBy(ray)) {
 
+        //     }
+        // }
+
+        // for debugging purposes
         if (ray != null) {
             // std.debug.print("pos:{} dir:{}\n", .{ char.camera.position, ray.direction });
             raylib.DrawSphere(ray.?.position, 1, raylib.WHITE);

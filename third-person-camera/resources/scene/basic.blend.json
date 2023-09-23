@@ -1,0 +1,36 @@
+{
+    "objectDescriptors": [
+        {
+            "resourcePath": "/home/alether/Code/hello-world-zig/third-person-camera/resources/scene/Sphere.glb",
+            "position": {
+                "x": 4.758599758148193,
+                "y": 2.1877150535583496,
+                "z": -0.8263930082321167
+            }
+        },
+        {
+            "resourcePath": "/home/alether/Code/hello-world-zig/third-person-camera/resources/scene/Cone.glb",
+            "position": {
+                "x": -3.594597339630127,
+                "y": 1.5098925828933716,
+                "z": 3.332186698913574
+            }
+        },
+        {
+            "resourcePath": "/home/alether/Code/hello-world-zig/third-person-camera/resources/scene/Cube.glb",
+            "position": {
+                "x": 0.9038316607475281,
+                "y": 1.4239599704742432,
+                "z": 3.508310556411743
+            }
+        },
+        {
+            "resourcePath": "/home/alether/Code/hello-world-zig/third-person-camera/resources/scene/Suzanne.glb",
+            "position": {
+                "x": -1.7663836479187012,
+                "y": 0.5194579362869263,
+                "z": -0.6098965406417847
+            }
+        }
+    ]
+}
