@@ -6,6 +6,11 @@ const ActiveAxis = enum { X, Y, Z, XY, XZ, YZ };
 const InitialClickInfo = struct {
     activeAxis: ActiveAxis,
     position: raylib.Vector3,
+
+    // This is the initial position but clamped to the activeAxis already
+    // if X axis is moving, then YZ is clamped to self.position
+    initialRayHitClampedPos: raylib.Vector3,
+    initialSelfPos: raylib.Vector3,
 };
 
 // 3D world direction
@@ -58,26 +63,36 @@ pub fn tryHold(self: *@This(), camera: raylib.Camera3D) void {
     var rayHit = self.*.getCollisionHit(ray);
 
     if (rayHit != null and self.initialClickInfo == null) {
+        var rayPlaneHit = rayPlaneIntersection(ray, rayHit.?.activeAxis, self.position);
+        if (!rayPlaneHit.hit) {
+            return;
+        }
+
         // this is initial click, let's save the initial clickInfo
         self.*.initialClickInfo = .{
             .activeAxis = rayHit.?.activeAxis,
             .position = rayHit.?.rayCollision.point,
+            .initialRayHitClampedPos = rayPlaneHit.point,
+            .initialSelfPos = self.position,
         };
-
-        var p = rayHit.?.rayCollision.point;
-        std.debug.print("{}\n", .{p});
-    } else if (self.initialClickInfo.* != null) {
+    } else if (self.initialClickInfo != null) {
         // this is no longer initial hit, but is a dragging movement
         // TODO: get a ray to plane intersection. the plane should be the axis
-        var rayPlaneHit = raylib.Vector3.zero();
+        var rayPlaneHit = rayPlaneIntersection(ray, self.initialClickInfo.?.activeAxis, self.position);
 
-        var initialOffset = self.*.initialClickInfo.?.position - self.*.position;
-        _ = initialOffset;
+        if (rayPlaneHit.hit) {
+            var activeAxis = self.initialClickInfo.?.activeAxis;
+            var initialRayPos = raylib.Vector3Zero();
+            if (activeAxis == ActiveAxis.X) {
+                initialRayPos.x = self.initialClickInfo.?.initialRayHitClampedPos.x - self.initialClickInfo.?.initialSelfPos.x;
+            } else if (activeAxis == ActiveAxis.Y) {
+                initialRayPos.y = self.initialClickInfo.?.initialRayHitClampedPos.y - self.initialClickInfo.?.initialSelfPos.y;
+            } else if (activeAxis == ActiveAxis.Z) {
+                initialRayPos.z = self.initialClickInfo.?.initialRayHitClampedPos.z - self.initialClickInfo.?.initialSelfPos.z;
+            }
 
-        var draggingOffset = raylib.Vector3.zero();
-        _ = draggingOffset;
-        
-        self.*.position = rayPlaneHit - 
+            self.*.position = rayPlaneHit.point.sub(initialRayPos);
+        }
     }
 }
 
@@ -105,9 +120,57 @@ fn getCollisionHit(self: @This(), ray: raylib.Ray) ?struct { rayCollision: rayli
     return null;
 }
 
-fn rayPlaneIntersection(activeAxis: ActiveAxis) raylib.RayCollision {
-    // Function to find the intersection of a ray with the XY plane (z=0)
+fn rayPlaneIntersection(ray: raylib.Ray, activeAxis: ActiveAxis, planeCoord: raylib.Vector3) raylib.RayCollision {
 
+    // Function to find the intersection of a ray with the XY plane (z=0)
+    var activeAxisDir = raylib.Vector3.zero();
+    var t: f32 = 0.0;
+    if (activeAxis == ActiveAxis.X) {
+        activeAxisDir = raylib.Vector3.new(1.0, 0.0, 0.0);
+        t = (planeCoord.y - ray.position.y) / ray.direction.y;
+    } else if (activeAxis == ActiveAxis.Y) {
+        activeAxisDir = raylib.Vector3.new(0.0, 1.0, 0.0);
+        t = (planeCoord.z - ray.position.z) / ray.direction.z;
+    } else if (activeAxis == ActiveAxis.Z) {
+        activeAxisDir = raylib.Vector3.new(0.0, 0.0, 1.0);
+        t = (planeCoord.x - ray.position.x) / ray.direction.x;
+    } else {
+        return .{
+            .hit = false,
+            .distance = 0.0,
+            .point = raylib.Vector3.zero(),
+            .normal = raylib.Vector3.zero(),
+        };
+    }
+
+    var isNearParallel = raylib.Vector3DotProduct(ray.direction, activeAxisDir);
+
+    //std.debug.print("isNearParallel: {}\n", .{isNearParallel});
+
+    if (isNearParallel < -0.99 or isNearParallel > 0.99) {
+        return .{
+            .hit = false,
+            .distance = 0.0,
+            .point = raylib.Vector3.zero(),
+            .normal = raylib.Vector3.zero(),
+        };
+    }
+
+    var intersectionCoord = planeCoord;
+    if (activeAxis == ActiveAxis.X) {
+        intersectionCoord.x = ray.position.x + t * ray.direction.x;
+    } else if (activeAxis == ActiveAxis.Y) {
+        intersectionCoord.y = ray.position.y + t * ray.direction.y;
+    } else if (activeAxis == ActiveAxis.Z) {
+        intersectionCoord.z = ray.position.z + t * ray.direction.z;
+    }
+
+    return .{
+        .hit = true,
+        .point = intersectionCoord,
+        .distance = 0.0,
+        .normal = activeAxisDir,
+    };
 }
 
 pub fn tick(self: *@This()) void {
@@ -116,12 +179,12 @@ pub fn tick(self: *@This()) void {
 
 pub fn render(self: @This()) void {
     // Must be called inside BeginMode3D render
-    raylib.DrawModel(self.arrowXModel, raylib.Vector3.zero(), 1.0, raylib.RED);
-    raylib.DrawModel(self.arrowYModel, raylib.Vector3.zero(), 1.0, raylib.GREEN);
-    raylib.DrawModel(self.arrowZModel, raylib.Vector3.zero(), 1.0, raylib.BLUE);
-    raylib.DrawModel(self.planeXYModel, raylib.Vector3.zero(), 1.0, raylib.BLUE);
-    raylib.DrawModel(self.planeXZModel, raylib.Vector3.zero(), 1.0, raylib.GREEN);
-    raylib.DrawModel(self.planeYZModel, raylib.Vector3.zero(), 1.0, raylib.RED);
+    raylib.DrawModel(self.arrowXModel, self.position, 1.0, raylib.RED);
+    raylib.DrawModel(self.arrowYModel, self.position, 1.0, raylib.GREEN);
+    raylib.DrawModel(self.arrowZModel, self.position, 1.0, raylib.BLUE);
+    raylib.DrawModel(self.planeXYModel, self.position, 1.0, raylib.BLUE);
+    raylib.DrawModel(self.planeXZModel, self.position, 1.0, raylib.GREEN);
+    raylib.DrawModel(self.planeYZModel, self.position, 1.0, raylib.RED);
 }
 
 pub fn deinit(self: @This()) void {

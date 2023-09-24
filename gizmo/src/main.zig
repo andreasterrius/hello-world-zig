@@ -16,7 +16,7 @@ pub fn main() !void {
     raylib.SetTargetFPS(60);
 
     var camera = .{
-        .position = .{ .x = 2.0, .y = 4.0, .z = -6.0 },
+        .position = .{ .x = 2.0, .y = 4.0, .z = -10.0 },
         .target = raylib.Vector3.zero(),
         .up = .{ .x = 0.0, .y = 1.0, .z = 0.0 },
         .fovy = 45.0,
