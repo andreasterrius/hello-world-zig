@@ -1,6 +1,7 @@
 const std = @import("std");
 const raylib = @import("raylib");
 
+const MaximumDistanceScale: f32 = 1000.0;
 const ActiveAxis = enum { X, Y, Z, XY, XZ, YZ };
 
 const InitialClickInfo = struct {
@@ -28,6 +29,8 @@ planeYZModel: raylib.Model,
 
 // State
 position: raylib.Vector3,
+isHidden: bool, // Whether this gizmo is rendered or not
+scale: f32,
 
 // if not null, then user has selected one of the axis
 initialClickInfo: ?InitialClickInfo,
@@ -51,24 +54,53 @@ pub fn init() !@This() {
         .planeXZModel = planeXZModel,
         .planeYZModel = planeYZModel,
         .position = raylib.Vector3.zero(),
+        .isHidden = true,
+        .scale = 1.0,
         .initialClickInfo = null,
     };
 }
 
 /// This usually happens when user press and holding left click (handled by caller)
 /// This function is paired with release()
-pub fn tryHold(self: *@This(), camera: raylib.Camera3D) void {
+pub fn tryHold(self: *@This(), camera: raylib.Camera3D, dependentPosition: ?*raylib.Vector3) void {
+
+    // There's no currently active selected object
+    if (dependentPosition == null) {
+        self.*.isHidden = true;
+        return;
+    }
+
+    // There's an active selected object
+    // Show & set gizmo position properly
+    self.*.isHidden = false;
+    self.*.position = dependentPosition.?.*;
+
+    // TODO: This should not be here, this should be in tick(), but dependentPosition will be weakly owned.
+    // Scale the size depennding on the size
+    var scale = raylib.Vector3DistanceSqr(camera.position, dependentPosition.?.*) / MaximumDistanceScale;
+
+    std.debug.print("{d}\n", .{self.scale});
+    scale = raylib.Clamp(scale, 0.25, 1.0);
+    self.scale = scale;
+    self.scaleAll();
+
+    // Try to check which arrow we're hitting
     var mousePos = raylib.GetMousePosition();
     var ray = raylib.GetMouseRay(mousePos, camera);
-    var rayHit = self.*.getCollisionHit(ray);
 
-    if (rayHit != null and self.initialClickInfo == null) {
+    if (self.initialClickInfo == null) {
+        // This is initial click on arrow/plane in gizmo, let's save the initial clickInfo
+        var rayHit = self.*.getCollisionHit(ray);
+        if (rayHit == null or !rayHit.?.rayCollision.hit) { // no arrows were clicked
+            return;
+        }
+
+        // Get a ray to plane intersection. (if I move X axis, move it along Y or Z plane and so forth)
         var rayPlaneHit = rayPlaneIntersection(ray, rayHit.?.activeAxis, self.position);
         if (!rayPlaneHit.hit) {
             return;
         }
 
-        // this is initial click, let's save the initial clickInfo
         self.*.initialClickInfo = .{
             .activeAxis = rayHit.?.activeAxis,
             .position = rayHit.?.rayCollision.point,
@@ -76,10 +108,11 @@ pub fn tryHold(self: *@This(), camera: raylib.Camera3D) void {
             .initialSelfPos = self.position,
         };
     } else if (self.initialClickInfo != null) {
-        // this is no longer initial hit, but is a dragging movement
-        // TODO: get a ray to plane intersection. the plane should be the axis
+        // This is no longer initial hit, but is a dragging movement
+        // Get a ray to plane intersection. (if I move X axis, move it along Y or Z plane and so forth)
         var rayPlaneHit = rayPlaneIntersection(ray, self.initialClickInfo.?.activeAxis, self.position);
 
+        // Handle parallel cases
         if (rayPlaneHit.hit) {
             var activeAxis = self.initialClickInfo.?.activeAxis;
             var initialRayPos = raylib.Vector3Zero();
@@ -92,6 +125,7 @@ pub fn tryHold(self: *@This(), camera: raylib.Camera3D) void {
             }
 
             self.*.position = rayPlaneHit.point.sub(initialRayPos);
+            dependentPosition.?.* = self.*.position;
         }
     }
 }
@@ -103,7 +137,10 @@ pub fn release(self: *@This()) void {
 }
 
 fn getCollisionHit(self: @This(), ray: raylib.Ray) ?struct { rayCollision: raylib.RayCollision, activeAxis: ActiveAxis } {
-    var transform = raylib.MatrixTranslate(self.position.x, self.position.y, self.position.z);
+    var transformTranslate = raylib.MatrixTranslate(self.position.x, self.position.y, self.position.z);
+    var transformScale = raylib.MatrixScale(self.scale, self.scale, self.scale);
+    var transform = raylib.MatrixMultiply(transformScale, transformTranslate);
+
     var coll = raylib.GetRayCollisionMesh(ray, self.arrowXModel.meshes.?[0], transform);
     if (coll.hit) {
         return .{ .rayCollision = coll, .activeAxis = .X };
@@ -177,7 +214,20 @@ pub fn tick(self: *@This()) void {
     _ = self;
 }
 
+pub fn scaleAll(self: *@This()) void {
+    self.arrowXModel.transform = raylib.MatrixScale(self.scale, self.scale, self.scale);
+    self.arrowYModel.transform = raylib.MatrixScale(self.scale, self.scale, self.scale);
+    self.arrowZModel.transform = raylib.MatrixScale(self.scale, self.scale, self.scale);
+    self.planeXYModel.transform = raylib.MatrixScale(self.scale, self.scale, self.scale);
+    self.planeXZModel.transform = raylib.MatrixScale(self.scale, self.scale, self.scale);
+    self.planeYZModel.transform = raylib.MatrixScale(self.scale, self.scale, self.scale);
+}
+
 pub fn render(self: @This()) void {
+    if (self.isHidden) {
+        return;
+    }
+
     // Must be called inside BeginMode3D render
     raylib.DrawModel(self.arrowXModel, self.position, 1.0, raylib.RED);
     raylib.DrawModel(self.arrowYModel, self.position, 1.0, raylib.GREEN);
